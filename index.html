@@ -887,6 +887,26 @@
     return diff;
   }
 
+  // ── WHATSAPP REMINDER ────────────────────────────────────────
+  function monthsSince(dateStr) {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr + 'T00:00:00');
+    const now = new Date();
+    let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    if (now.getDate() < d.getDate()) months--;
+    return Math.max(0, months);
+  }
+
+  function needsWhatsAppReminder(tx) {
+    return !!(tx.remaining > 0 && tx.phone && monthsSince(tx.date) >= 2);
+  }
+
+  function buildWhatsAppLink(tx) {
+    const digits = (tx.phone || '').replace(/[^0-9]/g, '');
+    const msg = `Hola ${tx.name}, le escribo del Locutorio Rachida para recordarle amablemente que tiene una deuda pendiente de ${fmt(tx.remaining)} € desde el ${formatDate(tx.date)}. Le agradecería que pudiera pasar a saldarla cuando le sea posible. ¡Gracias!`;
+    return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+  }
+
   // ── TABS ─────────────────────────────────────────────────────
   function switchTab(tab) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -995,6 +1015,9 @@
       else if (tx.type === 'digital') { badgeClass = 'badge-digital'; badgeText = '💻 Digital'; }
       else { badgeClass = 'badge-debt'; badgeText = '⏳ Pendiente'; }
 
+      const showWhatsApp = needsWhatsAppReminder(tx);
+      const monthsUnpaid = monthsSince(tx.date);
+
       let dueLine = '';
       if (tx.dueDate) {
         if (isOverdue) {
@@ -1013,6 +1036,7 @@
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
             <span class="tx-type-badge ${badgeClass}">${badgeText}</span>
+            ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" title="${monthsUnpaid} meses sin pagar - Enviar recordatorio por WhatsApp" style="text-decoration:none;font-size:1.1rem;line-height:1;display:inline-block">🟢</a>` : ''}
             ${dueLine}
           </div>
         </div>
@@ -1043,6 +1067,7 @@
           ${!isPaid ? `<button class="btn btn-success" style="font-size:0.75rem;padding:7px 12px" onclick="openPayModal('${tx.id}')">💵 Cobrar</button>` : ''}
           <button class="btn btn-blue" style="font-size:0.75rem;padding:7px 12px" onclick="openEditModal('${tx.id}')">✏️ Editar</button>
           ${tx.phone ? `<a href="tel:${tx.phone}" class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px;text-decoration:none">📞 Llamar</a>` : ''}
+          ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" class="btn" style="font-size:0.75rem;padding:7px 12px;text-decoration:none;background:#25D366;color:#fff">🟢 Recordar por WhatsApp</a>` : ''}
           <button class="btn btn-danger" onclick="deleteTx('${tx.id}')">🗑️ Borrar</button>
         </div>
       </div>`;
