@@ -534,6 +534,9 @@
   <button class="tab-btn active" onclick="switchTab('debts')">
     <span class="tab-icon">📋</span>Deudas
   </button>
+  <button class="tab-btn" onclick="switchTab('top')">
+    <span class="tab-icon">🏆</span>Top
+  </button>
   <button class="tab-btn" onclick="switchTab('add')">
     <span class="tab-icon">➕</span>Añadir
   </button>
@@ -555,7 +558,22 @@
     <button class="pill" onclick="setFilter('paid', this)">Pagado</button>
     <button class="pill" onclick="setFilter('service', this)">Servicios</button>
   </div>
+  <div style="margin:2px 0 14px">
+    <select id="periodFilter" onchange="renderDebts()" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--ink);font-family:'Inter',sans-serif;font-size:0.85rem">
+      <option value="all">📅 Todo el periodo</option>
+      <option value="month">Este mes</option>
+      <option value="3m">Últimos 3 meses</option>
+      <option value="6m">Últimos 6 meses</option>
+      <option value="year">Este año</option>
+    </select>
+  </div>
   <div class="tx-list" id="debtList"></div>
+</div>
+
+<!-- TAB: TOP DEBTORS -->
+<div class="tab-panel" id="tab-top">
+  <div class="section-title">🏆 Mayores deudas pendientes</div>
+  <div class="tx-list" id="topList"></div>
 </div>
 
 <!-- TAB: ADD -->
@@ -723,6 +741,27 @@
       <input type="text" id="payNote" placeholder="Ej: pagó la mitad...">
     </div>
     <button class="btn btn-success" style="width:100%;justify-content:center;padding:12px;font-size:0.95rem" onclick="confirmPayment()">✅ Confirmar pago</button>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">
+      🗑️ Confirmar eliminación
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <input type="hidden" id="deleteTxId">
+    <p style="margin-bottom:6px;color:var(--ink);font-size:0.92rem">
+      ¿Seguro que quieres eliminar esta operación de <strong id="deleteTxName"></strong>?
+    </p>
+    <p style="margin-bottom:18px;color:var(--muted);font-size:0.8rem">
+      Importe: <strong id="deleteTxAmount"></strong> — Esta acción no se puede deshacer.
+    </p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center;padding:11px" onclick="closeDeleteModal()">Cancelar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center;padding:11px" onclick="confirmDeleteTx()">🗑️ Sí, eliminar</button>
+    </div>
   </div>
 </div>
 
@@ -912,9 +951,45 @@
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     $('tab-' + tab).classList.add('active');
-    document.querySelectorAll('.tab-btn')[['debts','add','history'].indexOf(tab)].classList.add('active');
+    document.querySelectorAll('.tab-btn')[['debts','top','add','history'].indexOf(tab)].classList.add('active');
     if (tab === 'history') renderHistory();
     if (tab === 'debts')   renderDebts();
+    if (tab === 'top')     renderTopDebtors();
+  }
+
+  // ── TOP DEBTORS ──────────────────────────────────────────────
+  function renderTopDebtors() {
+    const container = $('topList');
+    const top = transactions
+      .filter(tx => tx.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining)
+      .slice(0, 10);
+
+    if (top.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>No hay deudas pendientes</p></div>`;
+      return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    container.innerHTML = top.map((tx, i) => {
+      const showWhatsApp = needsWhatsAppReminder(tx);
+      const rank = medals[i] || `${i + 1}º`;
+      return `
+      <div class="tx-card debt" style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:1.4rem;min-width:34px;text-align:center">${rank}</div>
+        <div style="flex:1;min-width:0">
+          <div class="tx-name">${tx.name}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">${tx.phone || 'Sin teléfono'} · Desde ${formatDate(tx.date)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="val amount-owed" style="font-size:1.05rem;font-weight:900">${fmt(tx.remaining)} €</div>
+          <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
+            ${tx.phone ? `<a href="tel:${tx.phone}" class="btn btn-ghost" style="font-size:0.7rem;padding:5px 9px;text-decoration:none">📞</a>` : ''}
+            ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" style="font-size:0.7rem;padding:5px 9px;text-decoration:none;background:#25D366;color:#fff;border-radius:8px;display:inline-flex;align-items:center">🟢</a>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // ── ADD TRANSACTION ──────────────────────────────────────────
@@ -979,12 +1054,33 @@
     renderDebts();
   }
 
+  function isInPeriod(dateStr, period) {
+    if (period === 'all' || !period) return true;
+    if (!dateStr) return false;
+    const d = new Date(dateStr + 'T00:00:00');
+    const now = new Date();
+    if (period === 'month') {
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }
+    if (period === 'year') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    if (period === '3m' || period === '6m') {
+      const monthsBack = period === '3m' ? 3 : 6;
+      const threshold = new Date(now.getFullYear(), now.getMonth() - monthsBack, now.getDate());
+      return d >= threshold && d <= now;
+    }
+    return true;
+  }
+
   function renderDebts() {
     const search = $('searchInput').value.toLowerCase();
     const todayStr = today();
+    const period = $('periodFilter') ? $('periodFilter').value : 'all';
 
     let list = transactions.filter(tx => {
       if (search && !tx.name.toLowerCase().includes(search)) return false;
+      if (!isInPeriod(tx.date, period)) return false;
       if (currentFilter === 'debt') return tx.remaining > 0 && tx.type === 'debt';
       if (currentFilter === 'overdue') {
         if (!tx.dueDate || tx.remaining <= 0) return false;
@@ -1184,15 +1280,30 @@
     }
   }
 
-  async function deleteTx(id) {
-    if (!confirm('¿Eliminar esta operación?')) return;
+  function deleteTx(id) {
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+    $('deleteTxId').value = id;
+    $('deleteTxName').textContent = tx.name;
+    $('deleteTxAmount').textContent = fmt(tx.remaining > 0 ? tx.remaining : tx.amount) + ' €';
+    $('deleteModal').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    $('deleteModal').classList.remove('open');
+  }
+
+  async function confirmDeleteTx() {
+    const id = $('deleteTxId').value;
+    if (!id) return;
     showLoading(true);
     try {
       await deleteTxFromDB(id);
       transactions = transactions.filter(t => t.id !== id);
       updateStats();
       renderDebts();
-      showToast('🗑️ Eliminado');
+      closeDeleteModal();
+      showToast('🗑️ Operación eliminada');
     } catch(e) {
       showToast('❌ Error al eliminar');
     } finally {
