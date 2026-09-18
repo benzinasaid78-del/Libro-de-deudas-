@@ -61,7 +61,7 @@
   /* ── STATS BAR ── */
   .stats-bar {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     padding: 14px 16px;
     background: var(--paper2);
@@ -525,10 +525,6 @@
     <div class="val" id="statPaid">0</div>
     <div class="lbl">Pagadas</div>
   </div>
-  <div class="stat-card info">
-    <div class="val" id="statTransfer">0</div>
-    <div class="lbl">Envíos</div>
-  </div>
 </div>
 
 <!-- TABS -->
@@ -538,9 +534,6 @@
   </button>
   <button class="tab-btn" onclick="switchTab('add')">
     <span class="tab-icon">➕</span>Añadir
-  </button>
-  <button class="tab-btn" onclick="switchTab('transfer')">
-    <span class="tab-icon">💸</span>Envío
   </button>
   <button class="tab-btn" onclick="switchTab('history')">
     <span class="tab-icon">📜</span>Historial
@@ -621,72 +614,6 @@
   </div>
 </div>
 
-<!-- TAB: TRANSFER -->
-<div class="tab-panel" id="tab-transfer">
-  <div class="transfer-card">
-    <div class="section-title" style="color:white;font-size:0.95rem">💸 Envío de dinero</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Nombre del remitente</label>
-        <input type="text" id="trName" placeholder="Nombre completo">
-      </div>
-      <div class="form-group">
-        <label>Teléfono</label>
-        <input type="tel" id="trPhone" placeholder="0600000000">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Importe enviado (€)</label>
-        <input type="number" id="trAmount" placeholder="0.00" step="0.01" oninput="calcTransferFee()">
-      </div>
-      <div class="form-group">
-        <label>País destinatario</label>
-        <select id="trCountry" onchange="calcTransferFee()">
-          <option value="MA">🇲🇦 Marruecos</option>
-          <option value="DZ">🇩🇿 Argelia</option>
-          <option value="TN">🇹🇳 Túnez</option>
-          <option value="SN">🇸🇳 Senegal</option>
-          <option value="ML">🇲🇱 Malí</option>
-          <option value="GM">🇬🇲 Gambia</option>
-          <option value="GN">🇬🇳 Guinea</option>
-          <option value="CI">🇨🇮 Costa de Marfil</option>
-          <option value="NG">🇳🇬 Nigeria</option>
-          <option value="PK">🇵🇰 Pakistán</option>
-          <option value="BD">🇧🇩 Bangladés</option>
-          <option value="OTHER">🌍 Otro país</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Tu comisión (€)</label>
-        <input type="number" id="trFee" placeholder="0.00" step="0.01" oninput="calcTransferFee()">
-      </div>
-      <div class="form-group">
-        <label>Forma de pago</label>
-        <select id="trPayMethod">
-          <option value="cash">Efectivo ahora</option>
-          <option value="later">Pagará después</option>
-        </select>
-      </div>
-    </div>
-    <div class="fee-display">
-      <div class="fee-label">Importe que cobrarás</div>
-      <div class="fee-val" id="trTotal">0.00 €</div>
-    </div>
-    <div style="margin-top:10px">
-      <div class="form-group">
-        <label style="color:rgba(255,255,255,0.7)">Nota</label>
-        <textarea id="trNote" placeholder="Nº recibo, nombre beneficiario..." style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;min-height:50px;border-radius:8px;padding:8px;width:100%;font-family:'Inter',sans-serif;font-size:0.85rem;direction:ltr"></textarea>
-      </div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:12px;background:var(--gold);color:var(--ink)" onclick="addTransfer()">✅ Registrar envío</button>
-  </div>
-  <div class="section-title">Últimos envíos</div>
-  <div class="tx-list" id="transferList"></div>
-</div>
-
 <!-- TAB: HISTORY -->
 <div class="tab-panel" id="tab-history">
   <div class="section-title">📜 Historial completo</div>
@@ -698,10 +625,6 @@
     <div class="summary-row">
       <span class="s-label">Total cobrado</span>
       <span class="s-val" style="color:var(--green)" id="sumPaid">0 €</span>
-    </div>
-    <div class="summary-row">
-      <span class="s-label">Total comisiones envíos</span>
-      <span class="s-val" style="color:var(--blue)" id="sumFees">0 €</span>
     </div>
     <div class="summary-row" style="border-top:2px solid var(--border);padding-top:8px;margin-top:4px">
       <span class="s-label" style="font-weight:700">Total general</span>
@@ -771,72 +694,6 @@
   </div>
 </div>
 
-<!-- MODAL: EDIT TRANSFER -->
-<div class="modal-overlay" id="editTrModal">
-  <div class="modal">
-    <div class="modal-title">
-      ✏️ Editar envío
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <input type="hidden" id="editTrId">
-    <div class="form-row">
-      <div class="form-group">
-        <label>Nombre del remitente *</label>
-        <input type="text" id="editTrName" placeholder="Nombre completo">
-      </div>
-      <div class="form-group">
-        <label>Teléfono</label>
-        <input type="tel" id="editTrPhone" placeholder="0600000000">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Importe enviado (€)</label>
-        <input type="number" id="editTrAmount" placeholder="0.00" step="0.01" oninput="recalcEditTr()">
-      </div>
-      <div class="form-group">
-        <label>País destinatario</label>
-        <select id="editTrCountry">
-          <option value="MA">🇲🇦 Marruecos</option>
-          <option value="DZ">🇩🇿 Argelia</option>
-          <option value="TN">🇹🇳 Túnez</option>
-          <option value="SN">🇸🇳 Senegal</option>
-          <option value="ML">🇲🇱 Malí</option>
-          <option value="GM">🇬🇲 Gambia</option>
-          <option value="GN">🇬🇳 Guinea</option>
-          <option value="CI">🇨🇮 Costa de Marfil</option>
-          <option value="NG">🇳🇬 Nigeria</option>
-          <option value="PK">🇵🇰 Pakistán</option>
-          <option value="BD">🇧🇩 Bangladés</option>
-          <option value="OTHER">🌍 Otro país</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Tu comisión (€)</label>
-        <input type="number" id="editTrFee" placeholder="0.00" step="0.01" oninput="recalcEditTr()">
-      </div>
-      <div class="form-group">
-        <label>Forma de pago</label>
-        <select id="editTrPayMethod">
-          <option value="cash">Efectivo ahora</option>
-          <option value="later">Pagará después</option>
-        </select>
-      </div>
-    </div>
-    <div class="fee-display" style="margin:10px 0">
-      <div class="fee-label">Importe que cobrarás</div>
-      <div class="fee-val" id="editTrTotal">0.00 €</div>
-    </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label>Nota</label>
-      <textarea id="editTrNote" placeholder="Nº recibo, nombre beneficiario..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-family:'Inter',sans-serif;font-size:0.88rem;background:var(--paper);direction:ltr;resize:vertical;min-height:60px"></textarea>
-    </div>
-    <button class="btn btn-primary" onclick="confirmEditTr()">💾 Guardar cambios</button>
-  </div>
-</div>
-
 <!-- MODAL: PARTIAL PAYMENT -->
 <div class="modal-overlay" id="payModal">
   <div class="modal">
@@ -896,7 +753,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const txCol = db.collection('transactions');
-  const trCol = db.collection('transfers');
 
   // Convierte errores de red/permiso en mensajes claros, igual que antes
   function handleDbError(e) {
@@ -911,7 +767,6 @@
 
   // ── DATA ──────────────────────────────────────────────────────
   let transactions = [];
-  let transfers    = [];
   let currentFilter = 'all';
   let isLoading = false;
 
@@ -930,12 +785,8 @@
   async function loadData() {
     showLoading(true);
     try {
-      const [txSnap, trSnap] = await Promise.all([
-        txCol.orderBy('created_at', 'desc').get(),
-        trCol.orderBy('created_at', 'desc').get()
-      ]);
+      const txSnap = await txCol.orderBy('created_at', 'desc').get();
       const txData = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const trData = trSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       transactions = txData.map(r => ({
         id: r.id,
         name: r.name,
@@ -950,22 +801,8 @@
         history: r.history || [],
         createdAt: r.created_at
       }));
-      transfers = trData.map(r => ({
-        id: r.id,
-        name: r.name,
-        phone: r.phone || '',
-        amount: parseFloat(r.amount),
-        fee: parseFloat(r.fee),
-        total: parseFloat(r.total),
-        country: r.country || '',
-        note: r.note || '',
-        paid: r.paid,
-        date: r.date,
-        createdAt: r.created_at
-      }));
       updateStats();
       renderDebts();
-      renderTransfers();
     } catch(e) {
       console.error('loadData error:', e);
       const isPerm = e && e.code === 'permission-denied';
@@ -1029,36 +866,6 @@
     try { await txCol.doc(id).delete(); } catch(e) { handleDbError(e); }
   }
 
-  async function saveTr(tr) {
-    const row = {
-      id: tr.id,
-      name: tr.name,
-      phone: tr.phone || null,
-      amount: tr.amount,
-      fee: tr.fee,
-      total: tr.total,
-      country: tr.country || null,
-      note: tr.note || null,
-      paid: tr.paid,
-      date: tr.date,
-      created_at: tr.createdAt
-    };
-    try { await trCol.doc(tr.id).set(row); } catch(e) { handleDbError(e); }
-  }
-
-  function updateStats() {
-    const debtCount = transactions.filter(t => t.remaining > 0).length;
-    const paidCount = transactions.filter(t => t.remaining <= 0).length;
-    const txCount   = transfers.length;
-    const totalDebts     = transactions.reduce((s,t) => s + (t.remaining || 0), 0);
-    const totalUnpaidTr  = transfers.filter(t => !t.paid).reduce((s,t) => s + (t.total || 0), 0);
-    const totalOwed      = totalDebts + totalUnpaidTr;
-    $('statDebt').textContent = debtCount;
-    $('statPaid').textContent = paidCount;
-    $('statTransfer').textContent = txCount;
-    $('headerTotal').textContent = fmt(totalOwed) + ' €';
-  }
-
   function showToast(msg, duration=2500) {
     const t = $('toast');
     t.textContent = msg;
@@ -1083,10 +890,9 @@
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     $('tab-' + tab).classList.add('active');
-    document.querySelectorAll('.tab-btn')[['debts','add','transfer','history'].indexOf(tab)].classList.add('active');
+    document.querySelectorAll('.tab-btn')[['debts','add','history'].indexOf(tab)].classList.add('active');
     if (tab === 'history') renderHistory();
     if (tab === 'debts')   renderDebts();
-    if (tab === 'transfer') renderTransfers();
   }
 
   // ── ADD TRANSACTION ──────────────────────────────────────────
@@ -1318,7 +1124,7 @@
   }
 
   function closeModal() {
-    ['payModal','editModal','editTrModal'].forEach(id => {
+    ['payModal','editModal'].forEach(id => {
       const el = $(id);
       if (el) { el.classList.remove('open'); el.classList.remove('active'); }
     });
@@ -1367,204 +1173,16 @@
     }
   }
 
-  // ── TRANSFER ─────────────────────────────────────────────────
-  function calcTransferFee() {
-    const amount = parseFloat($('trAmount').value) || 0;
-    const fee    = parseFloat($('trFee').value)    || 0;
-    $('trTotal').textContent = fmt(amount + fee) + ' €';
-  }
-
-  async function addTransfer() {
-    const name   = $('trName').value.trim();
-    const amount = parseFloat($('trAmount').value);
-    if (!name) { showToast('⚠️ Ingresa el nombre'); return; }
-    if (!amount || amount <= 0) { showToast('⚠️ Ingresa el importe'); return; }
-
-    const fee = parseFloat($('trFee').value) || 0;
-    const countryMap = {
-      MA:'Marruecos', DZ:'Argelia', TN:'Túnez', SN:'Senegal',
-      ML:'Malí', GM:'Gambia', GN:'Guinea', CI:'Costa de Marfil',
-      NG:'Nigeria', PK:'Pakistán', BD:'Bangladés', OTHER:'Otro país'
-    };
-    const countryCode = $('trCountry').value;
-    const payLater = $('trPayMethod').value === 'later';
-
-    const tr = {
-      id: uid(),
-      name,
-      phone: $('trPhone').value.trim(),
-      amount,
-      fee,
-      total: amount + fee,
-      country: countryMap[countryCode] || countryCode,
-      note: $('trNote').value.trim(),
-      paid: !payLater,
-      date: today(),
-      createdAt: new Date().toISOString()
-    };
-
-    showLoading(true);
-    try {
-      if (payLater) {
-        const debtTx = {
-          id: uid(),
-          name,
-          phone: tr.phone,
-          type: 'service',
-          amount: tr.total,
-          paid: 0,
-          remaining: tr.total,
-          date: today(),
-          dueDate: null,
-          note: `Envío a ${tr.country} - ${fmt(amount)} € + comisión ${fmt(fee)} €`,
-          history: [],
-          createdAt: new Date().toISOString()
-        };
-        await saveTx(debtTx);
-        transactions.unshift(debtTx);
-      }
-      await saveTr(tr);
-      transfers.unshift(tr);
-      updateStats();
-      renderTransfers();
-      renderDebts();
-      ['trName','trPhone','trAmount','trFee','trNote'].forEach(id => $(id).value = '');
-      $('trTotal').textContent = '0.00 €';
-      showToast(`✅ Envío de ${name} → ${tr.country} registrado`);
-    } catch(e) {
-      showToast('❌ Error al guardar');
-    } finally {
-      showLoading(false);
-    }
-  }
-
-  function renderTransfers() {
-    const list = transfers.slice(0, 15);
-    const container = $('transferList');
-    if (list.length === 0) {
-      container.innerHTML = `<div class="empty-state"><div class="empty-icon">💸</div><p>No hay envíos aún</p></div>`;
-      return;
-    }
-    container.innerHTML = list.map(tr => `
-      <div class="history-item" style="margin-bottom:8px">
-        <div class="hi-left" style="flex:1">
-          <div class="hi-title">${tr.name} → ${tr.country}</div>
-          <div class="hi-sub">
-            ${fmt(tr.amount)} € + comisión ${fmt(tr.fee)} € 
-            ${tr.paid ? '· <span style="color:var(--green)">✅ Pagado</span>' : '· <span style="color:var(--accent)">⏳ Sin pagar</span>'}
-          </div>
-          ${tr.note ? `<div class="hi-sub" style="margin-top:2px">📝 ${tr.note}</div>` : ''}
-          <div style="display:flex;gap:6px;margin-top:8px">
-            <button onclick="openEditTr('${tr.id}')" style="padding:5px 10px;background:var(--blue);color:white;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">✏️ Editar</button>
-            <button onclick="deleteTr('${tr.id}')" style="padding:5px 10px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🗑️ Borrar</button>
-          </div>
-        </div>
-        <div class="hi-right">
-          <div class="hi-amount" style="color:var(--blue)">${fmt(tr.total)} €</div>
-          <div class="hi-date">${formatDate(tr.date)}</div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // ── TRANSFER EDIT / DELETE ────────────────────────────────────
-  function openEditTr(id) {
-    const tr = transfers.find(t => t.id === id);
-    if (!tr) return;
-    $('editTrId').value = tr.id;
-    $('editTrName').value = tr.name;
-    $('editTrPhone').value = tr.phone || '';
-    $('editTrAmount').value = tr.amount;
-    $('editTrFee').value = tr.fee;
-    $('editTrCountry').value = tr.country || 'MA';
-    $('editTrPayMethod').value = tr.paid ? 'cash' : 'later';
-    $('editTrNote').value = tr.note || '';
-    $('editTrTotal').textContent = fmt(tr.total) + ' €';
-    $('editTrModal').classList.add('active');
-  }
-
-  function recalcEditTr() {
-    const amount = parseFloat($('editTrAmount').value) || 0;
-    const fee    = parseFloat($('editTrFee').value) || 0;
-    $('editTrTotal').textContent = fmt(amount + fee) + ' €';
-  }
-
-  async function confirmEditTr() {
-    const id = $('editTrId').value;
-    const name = $('editTrName').value.trim();
-    if (!name) { showToast('⚠️ Ingresa el nombre'); return; }
-    const amount = parseFloat($('editTrAmount').value) || 0;
-    const fee    = parseFloat($('editTrFee').value) || 0;
-    const paid   = $('editTrPayMethod').value === 'cash';
-    const idx = transfers.findIndex(t => t.id === id);
-    if (idx === -1) return;
-
-    const updated = {
-      ...transfers[idx],
-      name,
-      phone: $('editTrPhone').value.trim(),
-      amount,
-      fee,
-      total: amount + fee,
-      country: $('editTrCountry').value,
-      paid,
-      note: $('editTrNote').value.trim()
-    };
-
-    showLoading(true);
-    try {
-      await trCol.doc(id).update({
-        name: updated.name,
-        phone: updated.phone || null,
-        amount: updated.amount,
-        fee: updated.fee,
-        total: updated.total,
-        country: updated.country,
-        paid: updated.paid,
-        note: updated.note || null
-      });
-      transfers[idx] = updated;
-      updateStats();
-      renderTransfers();
-      closeModal();
-      showToast('✅ Envío actualizado');
-    } catch(e) {
-      showToast('❌ Error al guardar');
-      console.error(e);
-    } finally {
-      showLoading(false);
-    }
-  }
-
-  async function deleteTr(id) {
-    if (!confirm('¿Eliminar este envío?')) return;
-    showLoading(true);
-    try {
-      await trCol.doc(id).delete();
-      transfers = transfers.filter(t => t.id !== id);
-      updateStats();
-      renderTransfers();
-      showToast('🗑️ Envío eliminado');
-    } catch(e) {
-      showToast('❌ Error al eliminar');
-      console.error(e);
-    } finally {
-      showLoading(false);
-    }
-  }
-
   // ── HISTORY ───────────────────────────────────────────────────
   function renderHistory() {
     const all = [...transactions].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     const sumDebt  = transactions.reduce((s,t) => s + (t.remaining || 0), 0);
     const sumPaid  = transactions.reduce((s,t) => s + (t.paid || 0), 0);
-    const sumFees  = transfers.reduce((s,t) => s + (t.fee || 0), 0);
 
     $('sumDebt').textContent  = fmt(sumDebt) + ' €';
     $('sumPaid').textContent  = fmt(sumPaid) + ' €';
-    $('sumFees').textContent  = fmt(sumFees) + ' €';
-    $('sumTotal').textContent = fmt(sumPaid + sumFees) + ' €';
+    $('sumTotal').textContent = fmt(sumPaid) + ' €';
 
     const container = $('historyList');
     if (all.length === 0) {
@@ -1594,12 +1212,10 @@
   function updateStats() {
     const debtCount = transactions.filter(t => t.remaining > 0).length;
     const paidCount = transactions.filter(t => t.remaining <= 0).length;
-    const txCount   = transfers.length;
     const totalOwed = transactions.reduce((s,t) => s + (t.remaining || 0), 0);
 
     $('statDebt').textContent = debtCount;
     $('statPaid').textContent = paidCount;
-    $('statTransfer').textContent = txCount;
     $('headerTotal').textContent = fmt(totalOwed) + ' €';
   }
 
