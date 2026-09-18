@@ -501,9 +501,103 @@
   .summary-row:last-child { border-bottom: none; }
   .summary-row .s-label { color: var(--muted); font-family: 'Inter', sans-serif; }
   .summary-row .s-val { font-weight: 700; }
+
+  /* ── APP SHELL (desktop presentation) ── */
+  html { background: #e4ded0; }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .app-shell {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background: var(--paper);
+    position: relative;
+  }
+
+  @media (min-width: 640px) {
+    html, body { background: #e4ded0; }
+    body {
+      padding: 40px 20px;
+      align-items: flex-start;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(200,191,173,0.25) 28px),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8bfad' fill-opacity='0.10'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .app-shell {
+      min-height: auto;
+      border-radius: 20px;
+      box-shadow: 0 24px 60px rgba(26,26,46,0.28), 0 6px 18px rgba(26,26,46,0.14);
+      border: 1px solid var(--border);
+    }
+    .app-header { border-radius: 19px 19px 0 0; top: 40px; }
+  }
+
+  /* ── CUSTOM SELECT (period filter) ── */
+  .custom-select { position: relative; }
+  .custom-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.18s;
+  }
+  .custom-select-trigger:hover { border-color: var(--muted); }
+  .custom-select.open .custom-select-trigger { border-color: var(--accent); }
+  .cs-chevron { color: var(--muted); flex-shrink: 0; transition: transform 0.18s; }
+  .custom-select.open .cs-chevron { transform: rotate(180deg); color: var(--accent); }
+  .custom-select-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px var(--shadow);
+    padding: 6px;
+    z-index: 60;
+    overflow: hidden;
+  }
+  .custom-select.open .custom-select-menu { display: block; animation: csFadeIn 0.15s ease; }
+  @keyframes csFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cs-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cs-option:hover { background: var(--paper2); }
+  .cs-option.active { color: var(--accent); font-weight: 700; background: #fdf1ef; }
+  .cs-check { display: none; color: var(--accent); }
+  .cs-option.active .cs-check { display: flex; }
 </style>
 </head>
 <body>
+<div class="app-shell">
 
 <!-- HEADER -->
 <div class="app-header">
@@ -559,13 +653,41 @@
     <button class="pill" onclick="setFilter('service', this)">Servicios</button>
   </div>
   <div style="margin:2px 0 14px">
-    <select id="periodFilter" onchange="renderDebts()" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--ink);font-family:'Inter',sans-serif;font-size:0.85rem">
-      <option value="all">Todo el periodo</option>
-      <option value="month">Este mes</option>
-      <option value="3m">Últimos 3 meses</option>
-      <option value="6m">Últimos 6 meses</option>
-      <option value="year">Este año</option>
-    </select>
+    <div class="custom-select" id="periodSelectWrap">
+      <button type="button" class="custom-select-trigger" id="periodSelectBtn" onclick="togglePeriodMenu(event)">
+        <span id="periodSelectLabel">Todo el periodo</span>
+        <svg class="cs-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="custom-select-menu" id="periodSelectMenu">
+        <div class="cs-option active" data-value="all" onclick="selectPeriod('all','Todo el periodo')">
+          <span>Todo el periodo</span>
+          <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+        <div class="cs-option" data-value="month" onclick="selectPeriod('month','Este mes')">
+          <span>Este mes</span>
+          <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+        <div class="cs-option" data-value="3m" onclick="selectPeriod('3m','Últimos 3 meses')">
+          <span>Últimos 3 meses</span>
+          <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+        <div class="cs-option" data-value="6m" onclick="selectPeriod('6m','Últimos 6 meses')">
+          <span>Últimos 6 meses</span>
+          <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+        <div class="cs-option" data-value="year" onclick="selectPeriod('year','Este año')">
+          <span>Este año</span>
+          <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+      </div>
+      <select id="periodFilter" style="display:none">
+        <option value="all">Todo el periodo</option>
+        <option value="month">Este mes</option>
+        <option value="3m">Últimos 3 meses</option>
+        <option value="6m">Últimos 6 meses</option>
+        <option value="year">Este año</option>
+      </select>
+    </div>
   </div>
   <div class="tx-list" id="debtList"></div>
 </div>
@@ -653,6 +775,8 @@
   </div>
   <div class="tx-list" id="historyList"></div>
 </div>
+
+</div><!-- /app-shell -->
 
 <!-- MODAL: EDIT TRANSACTION -->
 <div class="modal-overlay" id="editModal">
@@ -945,6 +1069,25 @@
     const msg = `Hola ${tx.name}, le escribo del Locutorio Rachida para recordarle amablemente que tiene una deuda pendiente de ${fmt(tx.remaining)} € desde el ${formatDate(tx.date)}. Le agradecería que pudiera pasar a saldarla cuando le sea posible. ¡Gracias!`;
     return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
   }
+
+  // ── CUSTOM SELECT: PERIOD FILTER ────────────────────────────
+  function togglePeriodMenu(e) {
+    if (e) e.stopPropagation();
+    $('periodSelectWrap').classList.toggle('open');
+  }
+  function selectPeriod(value, label) {
+    $('periodFilter').value = value;
+    $('periodSelectLabel').textContent = label;
+    document.querySelectorAll('#periodSelectMenu .cs-option').forEach(o => {
+      o.classList.toggle('active', o.getAttribute('data-value') === value);
+    });
+    $('periodSelectWrap').classList.remove('open');
+    renderDebts();
+  }
+  document.addEventListener('click', function (e) {
+    const wrap = $('periodSelectWrap');
+    if (wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+  });
 
   // ── TABS ─────────────────────────────────────────────────────
   function switchTab(tab) {
