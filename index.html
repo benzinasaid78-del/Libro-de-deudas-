@@ -536,6 +536,35 @@
     font-family: 'Inter', sans-serif;
   }
 
+  /* ── CLIENT NAME AUTOCOMPLETE (Añadir tab) ── */
+  .client-suggest {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 24px var(--shadow);
+    z-index: 70;
+    margin-top: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .client-suggest.show { display: block; }
+  .client-suggest-item {
+    padding: 9px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .client-suggest-item:last-child { border-bottom: none; }
+  .client-suggest-item:hover { background: var(--paper2); }
+  .client-suggest-item .csi-name { font-weight: 700; color: var(--ink); }
+  .client-suggest-item .csi-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
   /* ── APP SHELL (desktop presentation) ── */
   html { background: #e4ded0; }
   body {
@@ -833,9 +862,10 @@
   <div class="section-title"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg> Registrar nueva operación</div>
   <div class="form-card">
     <div class="form-row">
-      <div class="form-group">
+      <div class="form-group" style="position:relative">
         <label>Nombre del cliente *</label>
-        <input type="text" id="addName" placeholder="Ej: Mohamed Ahmed">
+        <input type="text" id="addName" placeholder="Ej: Mohamed Ahmed" autocomplete="off" oninput="filterClientSuggestions(this.value)" onfocus="filterClientSuggestions(this.value)" onblur="setTimeout(hideClientSuggestions, 150)">
+        <div id="addNameSuggestions" class="client-suggest"></div>
       </div>
       <div class="form-group">
         <label>Teléfono</label>
@@ -1024,6 +1054,9 @@
 
     <div class="section-title" style="font-size:0.85rem">Detalle de operaciones</div>
     <div id="clientItemsList" style="display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow-y:auto;padding-right:2px"></div>
+
+    <input type="hidden" id="clientModalPhoneRaw">
+    <button class="btn btn-primary" style="margin-top:16px" onclick="addOperationFor($('clientModalName').textContent, $('clientModalPhoneRaw').value)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación para este cliente</button>
   </div>
 </div>
 
@@ -1340,6 +1373,7 @@
       updateStats();
       renderDebts();
       ['addName','addPhone','addAmount','addPaid','addRemaining','addDueDate','addNote'].forEach(id => $(id).value = '');
+      hideClientSuggestions();
       $('addDate').value = today();
       $('addType').value = 'debt';
       toggleTypeFields();
@@ -1469,6 +1503,7 @@
           ${!isPaid ? `<button class="btn btn-success" style="font-size:0.75rem;padding:7px 12px" onclick="openPayModal('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cobrar</button>` : ''}
           <button class="btn btn-blue" style="font-size:0.75rem;padding:7px 12px" onclick="openEditModal('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
           <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(tx.name)}" onclick="openClientModal(this.dataset.name)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg> Ver cuenta</button>
+          <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(tx.name)}" data-phone="${escAttr(tx.phone || '')}" onclick="addOperationFor(this.dataset.name, this.dataset.phone)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación</button>
           ${tx.phone ? `<a href="tel:${tx.phone}" class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px;text-decoration:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2Z"/></svg> Llamar</a>` : ''}
           ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" class="btn" style="font-size:0.75rem;padding:7px 12px;text-decoration:none;background:#25D366;color:#fff"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg> Recordar por WhatsApp</a>` : ''}
           <button class="btn btn-danger" onclick="deleteTx('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Borrar</button>
@@ -1506,6 +1541,7 @@
 
     $('clientModalName').textContent  = items[items.length - 1].name;
     $('clientModalPhone').textContent = phone ? phone : 'Sin teléfono';
+    $('clientModalPhoneRaw').value = phone || '';
     $('clientOpCount').textContent    = items.length;
     $('clientSumAmount').textContent    = fmt(totalAmount) + ' €';
     $('clientSumPaid').textContent      = fmt(totalPaid) + ' €';
@@ -1534,6 +1570,61 @@
 
   function closeClientModal() {
     $('clientModal').classList.remove('open');
+  }
+
+  // ── CLIENT NAME AUTOCOMPLETE (so repeat purchases link to the same client) ──
+  function getUniqueClients() {
+    const map = new Map();
+    transactions.forEach(t => {
+      const key = (t.name || '').trim().toLowerCase();
+      if (!key) return;
+      const existing = map.get(key);
+      if (!existing || new Date(t.date || 0) > new Date(existing.date || 0)) map.set(key, t);
+    });
+    return Array.from(map.values());
+  }
+
+  function filterClientSuggestions(value) {
+    const q = (value || '').trim().toLowerCase();
+    const box = $('addNameSuggestions');
+    if (!q) { box.classList.remove('show'); box.innerHTML = ''; return; }
+    const matches = getUniqueClients().filter(t => t.name.toLowerCase().includes(q)).slice(0, 6);
+    if (matches.length === 0) { box.classList.remove('show'); box.innerHTML = ''; return; }
+    box.innerHTML = matches.map(t => `
+      <div class="client-suggest-item" data-name="${escAttr(t.name)}" data-phone="${escAttr(t.phone || '')}" onclick="pickClientSuggestion(this)">
+        <div class="csi-name">${t.name}</div>
+        <div class="csi-meta">${t.phone ? t.phone + ' · ' : ''}Última operación: ${formatDate(t.date)}</div>
+      </div>
+    `).join('');
+    box.classList.add('show');
+  }
+
+  function pickClientSuggestion(el) {
+    $('addName').value = el.dataset.name;
+    if (el.dataset.phone) $('addPhone').value = el.dataset.phone;
+    hideClientSuggestions();
+  }
+
+  function hideClientSuggestions() {
+    $('addNameSuggestions').classList.remove('show');
+  }
+
+  // ── QUICK "NEW OPERATION" FOR AN EXISTING CLIENT ────────────────
+  function addOperationFor(name, phone) {
+    closeClientModal();
+    switchTab('add');
+    $('addName').value = name || '';
+    $('addPhone').value = phone || '';
+    $('addAmount').value = '';
+    $('addPaid').value = '';
+    $('addRemaining').value = '';
+    $('addDueDate').value = '';
+    $('addNote').value = '';
+    $('addDate').value = today();
+    $('addType').value = 'debt';
+    toggleTypeFields();
+    hideClientSuggestions();
+    setTimeout(() => $('addAmount').focus(), 250);
   }
 
   // ── EDIT MODAL ────────────────────────────────────────────────
