@@ -1300,24 +1300,11 @@
   function renderTopDebtors() {
     const container = $('topList');
 
-    // Group all unpaid operations by client (name, case-insensitive) so the
-    // same client's multiple operations are combined into a single total.
-    const groups = new Map();
-    transactions.filter(tx => tx.remaining > 0).forEach(tx => {
-      const key = (tx.name || '').trim().toLowerCase();
-      if (!key) return;
-      if (!groups.has(key)) {
-        groups.set(key, { name: tx.name, phone: tx.phone || '', remaining: 0, count: 0, earliestDate: tx.date });
-      }
-      const g = groups.get(key);
-      g.remaining += tx.remaining;
-      g.count += 1;
-      if (tx.phone) g.phone = tx.phone;
-      if (tx.date && (!g.earliestDate || new Date(tx.date) < new Date(g.earliestDate))) g.earliestDate = tx.date;
-    });
-
-    const top = Array.from(groups.values())
-      .sort((a, b) => b.remaining - a.remaining)
+    // Reuse the same client grouping as the Deudas tab, so the same client's
+    // multiple operations are always combined into a single total everywhere.
+    const top = buildClientGroups(transactions)
+      .filter(g => g.totalRemaining > 0)
+      .sort((a, b) => b.totalRemaining - a.totalRemaining)
       .slice(0, 10);
 
     if (top.length === 0) {
@@ -1327,7 +1314,7 @@
 
     const medals = ['<svg viewBox="0 0 24 24" width="1.3em" height="1.3em" style="vertical-align:-0.2em;flex-shrink:0"><circle cx="12" cy="12" r="10" fill="#F2B90C"/><text x="12" y="16" font-size="11" font-weight="700" text-anchor="middle" fill="#fff" font-family="Inter,sans-serif">1</text></svg>', '<svg viewBox="0 0 24 24" width="1.3em" height="1.3em" style="vertical-align:-0.2em;flex-shrink:0"><circle cx="12" cy="12" r="10" fill="#B0B4BA"/><text x="12" y="16" font-size="11" font-weight="700" text-anchor="middle" fill="#fff" font-family="Inter,sans-serif">2</text></svg>', '<svg viewBox="0 0 24 24" width="1.3em" height="1.3em" style="vertical-align:-0.2em;flex-shrink:0"><circle cx="12" cy="12" r="10" fill="#C9752F"/><text x="12" y="16" font-size="11" font-weight="700" text-anchor="middle" fill="#fff" font-family="Inter,sans-serif">3</text></svg>'];
     container.innerHTML = top.map((g, i) => {
-      const fakeTx = { remaining: g.remaining, phone: g.phone, date: g.earliestDate, name: g.name };
+      const fakeTx = { remaining: g.totalRemaining, phone: g.phone, date: g.earliestPendingDate, name: g.name };
       const showWhatsApp = needsWhatsAppReminder(fakeTx);
       const rank = medals[i] || `${i + 1}º`;
       return `
@@ -1335,10 +1322,10 @@
         <div style="font-size:1.4rem;min-width:34px;text-align:center">${rank}</div>
         <div style="flex:1;min-width:0">
           <div class="tx-name" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
-          <div style="font-size:0.72rem;color:var(--muted)">${g.phone || 'Sin teléfono'} · ${g.count} operación${g.count > 1 ? 'es' : ''} pendiente${g.count > 1 ? 's' : ''} · Desde ${formatDate(g.earliestDate)}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">${g.phone || 'Sin teléfono'} · ${g.pendingCount} operación${g.pendingCount > 1 ? 'es' : ''} pendiente${g.pendingCount > 1 ? 's' : ''} · Desde ${formatDate(g.earliestPendingDate)}</div>
         </div>
         <div style="text-align:right">
-          <div class="val amount-owed" style="font-size:1.05rem;font-weight:900">${fmt(g.remaining)} €</div>
+          <div class="val amount-owed" style="font-size:1.05rem;font-weight:900">${fmt(g.totalRemaining)} €</div>
           <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
             ${g.phone ? `<a href="tel:${g.phone}" class="btn btn-ghost" style="font-size:0.7rem;padding:5px 9px;text-decoration:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2Z"/></svg></a>` : ''}
             ${showWhatsApp ? `<a href="${buildWhatsAppLink(fakeTx)}" target="_blank" style="font-size:0.7rem;padding:5px 9px;text-decoration:none;background:#25D366;color:#fff;border-radius:8px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg></a>` : ''}
@@ -1430,100 +1417,143 @@
     return true;
   }
 
+  // ── CLIENT GROUPING (one card per client, not per operation) ───
+  function buildClientGroups(txList) {
+    const map = new Map();
+    txList.forEach(tx => {
+      const key = (tx.name || '').trim().toLowerCase();
+      if (!key) return;
+      if (!map.has(key)) map.set(key, { name: tx.name, phone: tx.phone || '', ops: [] });
+      const g = map.get(key);
+      g.ops.push(tx);
+      if (tx.phone) g.phone = tx.phone;
+    });
+    const todayStr = today();
+    return Array.from(map.values()).map(g => {
+      const totalAmount    = g.ops.reduce((s, t) => s + (t.amount    || 0), 0);
+      const totalPaid      = g.ops.reduce((s, t) => s + (t.paid      || 0), 0);
+      const totalRemaining = g.ops.reduce((s, t) => s + (t.remaining || 0), 0);
+      const dates = g.ops.map(t => t.date).filter(Boolean);
+      const earliestDate = dates.length ? dates.reduce((a, b) => new Date(a) < new Date(b) ? a : b) : null;
+      const latestCreatedAt = g.ops.reduce((max, t) => (!max || new Date(t.createdAt) > new Date(max)) ? t.createdAt : max, null);
+      const overdueOps = g.ops.filter(t => t.remaining > 0 && t.dueDate && t.dueDate < todayStr);
+      const hasOverdue = overdueOps.length > 0;
+      const maxOverdueDays = hasOverdue ? Math.max(...overdueOps.map(t => Math.abs(daysUntil(t.dueDate)))) : 0;
+      const hasService = g.ops.some(t => t.type === 'service');
+      const hasDigital = g.ops.some(t => t.type === 'digital');
+      const hasDebtUnpaid = g.ops.some(t => t.type === 'debt' && t.remaining > 0);
+      const pendingOps = g.ops.filter(t => t.remaining > 0).sort((a, b) => new Date(a.date) - new Date(b.date));
+      return {
+        name: g.name, phone: g.phone, ops: g.ops,
+        totalAmount, totalPaid, totalRemaining,
+        earliestDate, latestCreatedAt,
+        hasOverdue, maxOverdueDays, hasService, hasDigital, hasDebtUnpaid,
+        earliestPendingDate: pendingOps.length ? pendingOps[0].date : earliestDate,
+        pendingCount: pendingOps.length, count: g.ops.length
+      };
+    });
+  }
+
+  function getClientOps(name) {
+    const norm = (name || '').trim().toLowerCase();
+    return transactions.filter(t => (t.name || '').trim().toLowerCase() === norm);
+  }
+
+  // Routes a card-level action to the single operation directly when there is
+  // only one, otherwise opens "Ver cuenta" so the person can pick which one.
+  function handleClientAction(name, action) {
+    const ops = getClientOps(name);
+    if (ops.length === 0) return;
+    if (ops.length === 1) {
+      const id = ops[0].id;
+      if (action === 'pay')    return openPayModal(id);
+      if (action === 'edit')   return openEditModal(id);
+      if (action === 'delete') return deleteTx(id);
+    }
+    openClientModal(name);
+  }
+
   function renderDebts() {
     const search = $('searchInput').value.toLowerCase();
-    const todayStr = today();
     const period = $('periodFilter') ? $('periodFilter').value : 'all';
 
-    let list = transactions.filter(tx => {
-      if (search && !tx.name.toLowerCase().includes(search)) return false;
-      if (!isInPeriod(tx.date, period)) return false;
-      if (currentFilter === 'debt') return tx.remaining > 0 && tx.type === 'debt';
-      if (currentFilter === 'overdue') {
-        if (!tx.dueDate || tx.remaining <= 0) return false;
-        return tx.dueDate < todayStr;
-      }
-      if (currentFilter === 'paid') return tx.remaining <= 0;
-      if (currentFilter === 'service') return tx.type === 'service';
+    let groups = buildClientGroups(transactions).filter(g => {
+      if (search && !g.name.toLowerCase().includes(search)) return false;
+      if (!g.ops.some(t => isInPeriod(t.date, period))) return false;
+      if (currentFilter === 'debt')    return g.hasDebtUnpaid;
+      if (currentFilter === 'overdue') return g.hasOverdue;
+      if (currentFilter === 'paid')    return g.totalRemaining <= 0;
+      if (currentFilter === 'service') return g.hasService || g.hasDigital;
       return true;
     });
 
+    groups.sort((a, b) => new Date(b.latestCreatedAt || 0) - new Date(a.latestCreatedAt || 0));
+
     const container = $('debtList');
-    if (list.length === 0) {
+    if (groups.length === 0) {
       container.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Z"/></svg></div><p>Sin resultados</p></div>`;
       return;
     }
 
-    container.innerHTML = list.map(tx => {
-      const isOverdue = tx.dueDate && tx.dueDate < todayStr && tx.remaining > 0;
-      const days = daysUntil(tx.dueDate);
-      const isPaid = tx.remaining <= 0;
-      
-      let typeClass = isPaid ? 'paid' : tx.type;
-      if (isOverdue) typeClass = 'debt';
-      
+    container.innerHTML = groups.map(g => {
+      const isPaid = g.totalRemaining <= 0;
+
+      let typeClass = isPaid ? 'paid' : (g.hasDebtUnpaid ? 'debt' : (g.hasDigital ? 'digital' : 'service'));
+      if (g.hasOverdue) typeClass = 'debt';
+
       let badgeClass, badgeText;
       if (isPaid) { badgeClass = 'badge-paid'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg> Pagado'; }
-      else if (tx.type === 'service') { badgeClass = 'badge-service'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18l3 3 6.1-6.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2Z"/></svg> Servicio'; }
-      else if (tx.type === 'digital') { badgeClass = 'badge-digital'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="4" y="4" width="16" height="10" rx="1"/><path d="M2 19h20l-1.5-3h-17Z"/></svg> Digital'; }
-      else { badgeClass = 'badge-debt'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M6 2h12M6 22h12"/><path d="M6 2c0 5 5 6 6 8-1 2-6 3-6 8M18 2c0 5-5 6-6 8 1 2 6 3 6 8"/></svg> Pendiente'; }
+      else if (g.hasDebtUnpaid) { badgeClass = 'badge-debt'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M6 2h12M6 22h12"/><path d="M6 2c0 5 5 6 6 8-1 2-6 3-6 8M18 2c0 5-5 6-6 8 1 2 6 3 6 8"/></svg> Pendiente'; }
+      else if (g.hasDigital) { badgeClass = 'badge-digital'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="4" y="4" width="16" height="10" rx="1"/><path d="M2 19h20l-1.5-3h-17Z"/></svg> Digital'; }
+      else { badgeClass = 'badge-service'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18l3 3 6.1-6.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2Z"/></svg> Servicio'; }
 
-      const showWhatsApp = needsWhatsAppReminder(tx);
-      const monthsUnpaid = monthsSince(tx.date);
+      const fakeTx = { remaining: g.totalRemaining, phone: g.phone, date: g.earliestPendingDate, name: g.name };
+      const showWhatsApp = needsWhatsAppReminder(fakeTx);
+      const monthsUnpaid = monthsSince(g.earliestPendingDate);
 
-      let dueLine = '';
-      if (tx.dueDate) {
-        if (isOverdue) {
-          dueLine = `<span class="overdue-tag"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Atrasado ${Math.abs(days)} días</span>`;
-        } else if (!isPaid && days !== null) {
-          dueLine = `<span style="font-size:0.65rem;color:var(--muted);font-family:'Inter',sans-serif">${days > 0 ? `Faltan ${days} días` : '¡Hoy!'}</span>`;
-        }
-      }
+      const dueLine = g.hasOverdue
+        ? `<span class="overdue-tag"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Atrasado ${g.maxOverdueDays} días</span>`
+        : '';
 
       return `
-      <div class="tx-card ${typeClass} ${isOverdue ? 'overdue' : ''}">
+      <div class="tx-card ${typeClass} ${g.hasOverdue ? 'overdue' : ''}">
         <div class="tx-top">
           <div>
-            <div class="tx-name" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(tx.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${tx.name}</div>
-            ${tx.phone ? `<div style="font-size:0.72rem;color:var(--muted)">${tx.phone}</div>` : ''}
+            <div class="tx-name" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
+            ${g.phone ? `<div style="font-size:0.72rem;color:var(--muted)">${g.phone}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
             <span class="tx-type-badge ${badgeClass}">${badgeText}</span>
-            ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" title="${monthsUnpaid} meses sin pagar - Enviar recordatorio por WhatsApp" style="text-decoration:none;font-size:1.1rem;line-height:1;display:inline-block"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg></a>` : ''}
+            ${showWhatsApp ? `<a href="${buildWhatsAppLink(fakeTx)}" target="_blank" title="${monthsUnpaid} meses sin pagar - Enviar recordatorio por WhatsApp" style="text-decoration:none;font-size:1.1rem;line-height:1;display:inline-block"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg></a>` : ''}
             ${dueLine}
           </div>
         </div>
         <div class="tx-details">
           <div class="tx-detail-item">
             <span class="key">Importe total</span>
-            <span class="val">${fmt(tx.amount)} €</span>
+            <span class="val">${fmt(g.totalAmount)} €</span>
           </div>
           <div class="tx-detail-item">
             <span class="key">Ya pagado</span>
-            <span class="val amount-paid">${fmt(tx.paid)} €</span>
+            <span class="val amount-paid">${fmt(g.totalPaid)} €</span>
           </div>
           <div class="tx-detail-item">
             <span class="key">Pendiente</span>
-            <span class="val amount-owed">${fmt(tx.remaining)} €</span>
+            <span class="val amount-owed">${fmt(g.totalRemaining)} €</span>
           </div>
           <div class="tx-detail-item">
-            <span class="key">Fecha de operación</span>
-            <span class="val">${formatDate(tx.date)}</span>
+            <span class="key">Operaciones</span>
+            <span class="val">${g.count}${g.earliestDate ? ' · Desde ' + formatDate(g.earliestDate) : ''}</span>
           </div>
-          ${tx.dueDate ? `<div class="tx-detail-item">
-            <span class="key">Fecha de vencimiento</span>
-            <span class="val" style="color:${isOverdue?'var(--accent)':'inherit'}">${formatDate(tx.dueDate)}</span>
-          </div>` : ''}
         </div>
-        ${tx.note ? `<div class="tx-note"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M4 4h13l3 3v13H4Z"/><line x1="8" y1="9" x2="15" y2="9"/><line x1="8" y1="13" x2="15" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg> ${tx.note}</div>` : ''}
         <div class="tx-actions">
-          ${!isPaid ? `<button class="btn btn-success" style="font-size:0.75rem;padding:7px 12px" onclick="openPayModal('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cobrar</button>` : ''}
-          <button class="btn btn-blue" style="font-size:0.75rem;padding:7px 12px" onclick="openEditModal('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
-          <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(tx.name)}" onclick="openClientModal(this.dataset.name)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg> Ver cuenta</button>
-          <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(tx.name)}" data-phone="${escAttr(tx.phone || '')}" onclick="addOperationFor(this.dataset.name, this.dataset.phone)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación</button>
-          ${tx.phone ? `<a href="tel:${tx.phone}" class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px;text-decoration:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2Z"/></svg> Llamar</a>` : ''}
-          ${showWhatsApp ? `<a href="${buildWhatsAppLink(tx)}" target="_blank" class="btn" style="font-size:0.75rem;padding:7px 12px;text-decoration:none;background:#25D366;color:#fff"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg> Recordar por WhatsApp</a>` : ''}
-          <button class="btn btn-danger" onclick="deleteTx('${tx.id}')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Borrar</button>
+          ${!isPaid ? `<button class="btn btn-success" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="handleClientAction(this.dataset.name,'pay')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cobrar</button>` : ''}
+          <button class="btn btn-blue" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="handleClientAction(this.dataset.name,'edit')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
+          <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg> Ver cuenta</button>
+          <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" data-phone="${escAttr(g.phone || '')}" onclick="addOperationFor(this.dataset.name, this.dataset.phone)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación</button>
+          ${g.phone ? `<a href="tel:${g.phone}" class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px;text-decoration:none"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2Z"/></svg> Llamar</a>` : ''}
+          ${showWhatsApp ? `<a href="${buildWhatsAppLink(fakeTx)}" target="_blank" class="btn" style="font-size:0.75rem;padding:7px 12px;text-decoration:none;background:#25D366;color:#fff"><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9" fill="#25D366"/></svg> Recordar por WhatsApp</a>` : ''}
+          <button class="btn btn-danger" data-name="${escAttr(g.name)}" onclick="handleClientAction(this.dataset.name,'delete')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Borrar</button>
         </div>
       </div>`;
     }).join('');
@@ -1579,6 +1609,11 @@
             : `<span class="client-item-status paid">Pagado</span>`}
         </div>
         ${t.note ? `<div class="client-item-note">${t.note}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          ${t.remaining > 0 ? `<button class="btn btn-success" style="font-size:0.68rem;padding:5px 8px" onclick="payFromClientModal('${t.id}')"><svg viewBox="0 0 24 24" width="0.9em" height="0.9em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.1em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cobrar</button>` : ''}
+          <button class="btn btn-blue" style="font-size:0.68rem;padding:5px 8px" onclick="editFromClientModal('${t.id}')"><svg viewBox="0 0 24 24" width="0.9em" height="0.9em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.1em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
+          <button class="btn btn-danger" style="font-size:0.68rem;padding:5px 8px" onclick="deleteFromClientModal('${t.id}')"><svg viewBox="0 0 24 24" width="0.9em" height="0.9em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.1em;flex-shrink:0"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Borrar</button>
+        </div>
       </div>
     `).join('');
 
@@ -1588,6 +1623,12 @@
   function closeClientModal() {
     $('clientModal').classList.remove('open');
   }
+
+  // Per-operation actions launched from inside "Ver cuenta": close the
+  // account modal first so the target modal (pay/edit/delete) isn't stacked.
+  function payFromClientModal(id) { closeClientModal(); openPayModal(id); }
+  function editFromClientModal(id) { closeClientModal(); openEditModal(id); }
+  function deleteFromClientModal(id) { closeClientModal(); deleteTx(id); }
 
   // ── CLIENT NAME AUTOCOMPLETE (so repeat purchases link to the same client) ──
   function getUniqueClients() {
