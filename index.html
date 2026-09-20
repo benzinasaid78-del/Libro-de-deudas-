@@ -1035,7 +1035,10 @@
       <span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg> Cuenta de <span id="clientModalName" style="color:var(--accent)"></span></span>
       <button class="modal-close" onclick="closeClientModal()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div style="font-size:0.78rem;color:var(--muted);font-family:'Inter',sans-serif;margin-bottom:14px" id="clientModalPhone"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px">
+      <div style="font-size:0.78rem;color:var(--muted);font-family:'Inter',sans-serif" id="clientModalPhone"></div>
+      <button class="btn btn-ghost" style="font-size:0.68rem;padding:5px 9px;flex-shrink:0" onclick="openEditClientModal($('clientModalName').textContent)"><svg viewBox="0 0 24 24" width="0.9em" height="0.9em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.1em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar cliente</button>
+    </div>
 
     <div class="form-card" style="padding:12px;margin-bottom:16px">
       <div class="summary-row">
@@ -1050,6 +1053,7 @@
         <span class="s-label" style="font-weight:700">Total pendiente</span>
         <span class="s-val" style="font-size:1rem;color:var(--accent)" id="clientSumRemaining">0 €</span>
       </div>
+      <button class="btn btn-success" id="clientPayAllBtn" style="width:100%;justify-content:center;padding:9px;margin-top:10px;display:none" onclick="openPayAllModal($('clientModalName').textContent)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Pagar todo</button>
     </div>
 
     <div class="section-title" style="font-size:0.85rem">Detalle de operaciones</div>
@@ -1057,6 +1061,50 @@
 
     <input type="hidden" id="clientModalPhoneRaw">
     <button class="btn btn-primary" style="margin-top:16px" onclick="addOperationFor($('clientModalName').textContent, $('clientModalPhoneRaw').value)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación para este cliente</button>
+  </div>
+</div>
+
+<!-- MODAL: EDIT CLIENT INFO (name / phone, applies to all their operations) -->
+<div class="modal-overlay" id="editClientModal">
+  <div class="modal">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar datos del cliente
+      <button class="modal-close" onclick="closeEditClientModal()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="editClientOldName">
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="editClientName" placeholder="Ej: Mohamed Ahmed">
+    </div>
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input type="tel" id="editClientPhone" placeholder="Ej: 641821406">
+    </div>
+    <p style="margin:4px 0 16px;color:var(--muted);font-size:0.78rem">
+      Este cambio se aplicará a las <strong id="editClientOpCount">0</strong> operaciones de este cliente.
+    </p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="confirmEditClient()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> Guardar cambios</button>
+  </div>
+</div>
+
+<!-- MODAL: PAY ALL (settle every pending operation for a client at once) -->
+<div class="modal-overlay" id="payAllModal">
+  <div class="modal">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Saldar todo
+      <button class="modal-close" onclick="closePayAllModal()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="payAllClientName">
+    <p style="margin-bottom:6px;color:var(--ink);font-size:0.92rem">
+      ¿Confirmas que <strong id="payAllClientLabel"></strong> ha pagado <strong id="payAllAmount"></strong> y liquida <strong id="payAllCount"></strong> operación(es) pendiente(s)?
+    </p>
+    <p style="margin-bottom:18px;color:var(--muted);font-size:0.8rem">
+      Todas sus operaciones pendientes se marcarán como pagadas. El cliente y su historial permanecen intactos.
+    </p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center;padding:11px" onclick="closePayAllModal()">Cancelar</button>
+      <button class="btn btn-success" style="flex:1;justify-content:center;padding:11px" onclick="confirmPayAll()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg> Sí, saldar todo</button>
+    </div>
   </div>
 </div>
 
@@ -1548,6 +1596,7 @@
         </div>
         <div class="tx-actions">
           ${!isPaid ? `<button class="btn btn-success" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="handleClientAction(this.dataset.name,'pay')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cobrar</button>` : ''}
+          ${!isPaid && g.pendingCount > 1 ? `<button class="btn" style="font-size:0.75rem;padding:7px 12px;background:#0d9488;color:#fff" data-name="${escAttr(g.name)}" onclick="openPayAllModal(this.dataset.name)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg> Pagar todo</button>` : ''}
           <button class="btn btn-blue" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="handleClientAction(this.dataset.name,'edit')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
           <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg> Ver cuenta</button>
           <button class="btn btn-ghost" style="font-size:0.75rem;padding:7px 12px" data-name="${escAttr(g.name)}" data-phone="${escAttr(g.phone || '')}" onclick="addOperationFor(this.dataset.name, this.dataset.phone)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Añadir operación</button>
@@ -1593,6 +1642,7 @@
     $('clientSumAmount').textContent    = fmt(totalAmount) + ' €';
     $('clientSumPaid').textContent      = fmt(totalPaid) + ' €';
     $('clientSumRemaining').textContent = fmt(totalRemaining) + ' €';
+    $('clientPayAllBtn').style.display  = totalRemaining > 0 ? 'inline-flex' : 'none';
 
     const typeLabel = t => t === 'digital' ? 'Servicio digital' : t === 'service' ? 'Servicio' : 'Mercancía / Préstamo';
 
@@ -1629,6 +1679,93 @@
   function payFromClientModal(id) { closeClientModal(); openPayModal(id); }
   function editFromClientModal(id) { closeClientModal(); openEditModal(id); }
   function deleteFromClientModal(id) { closeClientModal(); deleteTx(id); }
+
+  // ── EDIT CLIENT INFO (name/phone applied to every one of their operations) ──
+  function openEditClientModal(name) {
+    const ops = getClientOps(name);
+    if (ops.length === 0) return;
+    closeClientModal();
+    $('editClientOldName').value = name;
+    $('editClientName').value = ops[ops.length - 1].name;
+    $('editClientPhone').value = (ops.find(t => t.phone) || {}).phone || '';
+    $('editClientOpCount').textContent = ops.length;
+    $('editClientModal').classList.add('open');
+  }
+
+  function closeEditClientModal() {
+    $('editClientModal').classList.remove('open');
+  }
+
+  async function confirmEditClient() {
+    const oldName = $('editClientOldName').value;
+    const newName = $('editClientName').value.trim();
+    const newPhone = $('editClientPhone').value.trim();
+    if (!newName) { showToast('Ingresa el nombre'); return; }
+
+    const ops = getClientOps(oldName);
+    if (ops.length === 0) { closeEditClientModal(); return; }
+
+    showLoading(true);
+    try {
+      for (const tx of ops) {
+        tx.name = newName;
+        tx.phone = newPhone;
+        await updateTx(tx, true);
+      }
+      updateStats();
+      renderDebts();
+      closeEditClientModal();
+      showToast(`Datos de ${newName} actualizados`);
+      openClientModal(newName);
+    } catch(e) {
+      showToast('Error al actualizar cliente');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  // ── PAY ALL (settle every pending operation for a client in one go) ────
+  function openPayAllModal(name) {
+    const ops = getClientOps(name).filter(t => t.remaining > 0);
+    if (ops.length === 0) return;
+    const total = ops.reduce((s, t) => s + t.remaining, 0);
+    closeClientModal();
+    $('payAllClientName').value = name;
+    $('payAllClientLabel').textContent = ops[0].name;
+    $('payAllAmount').textContent = fmt(total) + ' €';
+    $('payAllCount').textContent = ops.length;
+    $('payAllModal').classList.add('open');
+  }
+
+  function closePayAllModal() {
+    $('payAllModal').classList.remove('open');
+  }
+
+  async function confirmPayAll() {
+    const name = $('payAllClientName').value;
+    const ops = getClientOps(name).filter(t => t.remaining > 0);
+    if (ops.length === 0) { closePayAllModal(); return; }
+
+    showLoading(true);
+    try {
+      for (const tx of ops) {
+        const payment = tx.remaining;
+        tx.history = tx.history || [];
+        tx.history.push({ amount: payment, date: today(), note: 'Pago total' });
+        tx.paid = tx.amount;
+        tx.remaining = 0;
+        await updateTx(tx);
+      }
+      updateStats();
+      renderDebts();
+      closePayAllModal();
+      showToast(`Todas las operaciones de ${name} saldadas`);
+    } catch(e) {
+      showToast('Error al saldar todo');
+    } finally {
+      showLoading(false);
+    }
+  }
 
   // ── CLIENT NAME AUTOCOMPLETE (so repeat purchases link to the same client) ──
   function getUniqueClients() {
