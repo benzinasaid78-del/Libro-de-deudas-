@@ -667,7 +667,10 @@
     .tab-panel { grid-area: content; padding: 8px 32px 32px; }
 
     /* debts tab: search + period side-by-side, pills below, cards grid below */
-    #tab-debts {
+    /* NOTE: must stay scoped to ".active" — an un-scoped #id rule has higher
+       specificity than ".tab-panel { display:none }" and would force this
+       tab to stay visible (and overlap other tabs) even when inactive. */
+    #tab-debts.active {
       display: grid;
       grid-template-columns: 1fr 240px;
       grid-template-areas:
