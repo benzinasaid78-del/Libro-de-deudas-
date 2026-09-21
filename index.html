@@ -269,7 +269,7 @@
   .badge-credit { background: #e8f8ee; color: var(--green); }
   .badge-service { background: #e8f0f8; color: var(--blue); }
   .badge-digital { background: #f0e8f8; color: #8e44ad; }
-  .badge-paid { background: #eee; color: var(--muted); }
+  .badge-paid { background: #e8f8ee; color: var(--green); }
   .tx-card.digital::before { background: #8e44ad; }
 
   .tx-details {
@@ -975,11 +975,31 @@
     <div class="form-row">
       <div class="form-group">
         <label>Tipo de operación *</label>
-        <select id="addType" onchange="toggleTypeFields()">
-          <option value="debt">Mercancía / Préstamo</option>
-          <option value="service">Servicio (envío de dinero...)</option>
-          <option value="digital">Servicio digital (CV, escáner...)</option>
-        </select>
+        <div class="custom-select" id="addTypeWrap">
+          <button type="button" class="custom-select-trigger" onclick="toggleTypeMenu('addTypeWrap', event)">
+            <span id="addTypeLabel">Mercancía / Préstamo</span>
+            <svg class="cs-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="custom-select-menu" id="addTypeMenu">
+            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','debt','Mercancía / Préstamo',toggleTypeFields)">
+              <span>Mercancía / Préstamo</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="cs-option" data-value="service" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','service','Servicio (envío de dinero...)',toggleTypeFields)">
+              <span>Servicio (envío de dinero...)</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="cs-option" data-value="digital" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','digital','Servicio digital (CV, escáner...)',toggleTypeFields)">
+              <span>Servicio digital (CV, escáner...)</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+          </div>
+          <select id="addType" style="display:none">
+            <option value="debt">Mercancía / Préstamo</option>
+            <option value="service">Servicio (envío de dinero...)</option>
+            <option value="digital">Servicio digital (CV, escáner...)</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Importe total (€) *</label>
@@ -1059,11 +1079,31 @@
     <div class="form-row">
       <div class="form-group">
         <label>Tipo de operación *</label>
-        <select id="editType">
-          <option value="debt">Mercancía / Préstamo</option>
-          <option value="service">Servicio (envío de dinero...)</option>
-          <option value="digital">Servicio digital (CV, escáner...)</option>
-        </select>
+        <div class="custom-select" id="editTypeWrap">
+          <button type="button" class="custom-select-trigger" onclick="toggleTypeMenu('editTypeWrap', event)">
+            <span id="editTypeLabel">Mercancía / Préstamo</span>
+            <svg class="cs-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="custom-select-menu" id="editTypeMenu">
+            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','debt','Mercancía / Préstamo')">
+              <span>Mercancía / Préstamo</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="cs-option" data-value="service" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','service','Servicio (envío de dinero...)')">
+              <span>Servicio (envío de dinero...)</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="cs-option" data-value="digital" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','digital','Servicio digital (CV, escáner...)')">
+              <span>Servicio digital (CV, escáner...)</span>
+              <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+          </div>
+          <select id="editType" style="display:none">
+            <option value="debt">Mercancía / Préstamo</option>
+            <option value="service">Servicio (envío de dinero...)</option>
+            <option value="digital">Servicio digital (CV, escáner...)</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Importe total (€) *</label>
@@ -1432,9 +1472,37 @@
     renderDebts();
   }
   document.addEventListener('click', function (e) {
-    const wrap = $('periodSelectWrap');
-    if (wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+    document.querySelectorAll('.custom-select.open').forEach(wrap => {
+      if (!wrap.contains(e.target)) wrap.classList.remove('open');
+    });
   });
+
+  // ── CUSTOM SELECT: OPERATION TYPE (add / edit) ──────────────────
+  const TYPE_OPTION_LABELS = {
+    debt: 'Mercancía / Préstamo',
+    service: 'Servicio (envío de dinero...)',
+    digital: 'Servicio digital (CV, escáner...)'
+  };
+  function toggleTypeMenu(wrapId, e) {
+    if (e) e.stopPropagation();
+    $(wrapId).classList.toggle('open');
+  }
+  function selectTypeOption(nativeId, wrapId, labelId, menuId, value, label, onChangeCb) {
+    $(nativeId).value = value;
+    $(labelId).textContent = label;
+    document.querySelectorAll('#' + menuId + ' .cs-option').forEach(o => {
+      o.classList.toggle('active', o.getAttribute('data-value') === value);
+    });
+    $(wrapId).classList.remove('open');
+    if (onChangeCb) onChangeCb();
+  }
+  function syncTypeSelectUI(nativeId, labelId, menuId) {
+    const value = $(nativeId).value;
+    $(labelId).textContent = TYPE_OPTION_LABELS[value] || TYPE_OPTION_LABELS.debt;
+    document.querySelectorAll('#' + menuId + ' .cs-option').forEach(o => {
+      o.classList.toggle('active', o.getAttribute('data-value') === value);
+    });
+  }
 
   // ── TABS ─────────────────────────────────────────────────────
   function switchTab(tab) {
@@ -1531,6 +1599,7 @@
       hideClientSuggestions();
       $('addDate').value = today();
       $('addType').value = 'debt';
+      syncTypeSelectUI('addType','addTypeLabel','addTypeMenu');
       toggleTypeFields();
       showToast(`Operación de ${name} guardada`);
       switchTab('debts');
@@ -2002,6 +2071,7 @@
     $('addNote').value = '';
     $('addDate').value = today();
     $('addType').value = 'debt';
+    syncTypeSelectUI('addType','addTypeLabel','addTypeMenu');
     toggleTypeFields();
     hideClientSuggestions();
     setTimeout(() => $('addAmount').focus(), 250);
@@ -2015,6 +2085,7 @@
     $('editName').value = tx.name;
     $('editPhone').value = tx.phone || '';
     $('editType').value = tx.type;
+    syncTypeSelectUI('editType','editTypeLabel','editTypeMenu');
     $('editAmount').value = tx.amount;
     $('editPaid').value = tx.paid;
     $('editRemaining').value = fmt(tx.remaining);
