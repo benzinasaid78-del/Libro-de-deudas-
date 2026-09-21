@@ -600,9 +600,9 @@
 
   /* ── DESKTOP DASHBOARD (real desktop layout, uses full screen) ── */
   @media (min-width: 1000px) {
-    body { padding: 28px; }
+    body { padding: 24px; }
     .app-shell {
-      max-width: 1240px;
+      max-width: min(1760px, 97vw);
       display: grid;
       grid-template-columns: 240px 1fr;
       grid-template-rows: auto auto 1fr;
@@ -692,6 +692,18 @@
 
     #tab-add .form-card { max-width: 720px; }
     #tab-history .form-card { max-width: 720px; }
+  }
+
+  /* ── ULTRA-WIDE / LARGE MONITORS: scale the shell and grids further ── */
+  @media (min-width: 1500px) {
+    body { padding: 20px; }
+    .app-shell { grid-template-columns: 260px 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, minmax(180px, 260px)); }
+    .tx-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  }
+  @media (min-width: 1900px) {
+    .app-shell { max-width: min(2100px, 97vw); grid-template-columns: 280px 1fr; }
+    .tx-list { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
   }
 
   /* ── CUSTOM SELECT (period filter) ── */
