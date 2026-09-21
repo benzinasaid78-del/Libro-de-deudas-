@@ -614,11 +614,15 @@
       box-shadow: 0 30px 70px rgba(26,26,46,0.30), 0 10px 24px rgba(26,26,46,0.14);
     }
 
-    /* header spans full width, stays put (not sticky) since sidebar scrolls with it */
+    /* header spans full width and stays put (NOT sticky) because the sidebar
+       next to it scrolls normally with the page; leaving sticky on here (a
+       past bug) let the sidebar's edges show above/below the pinned header
+       while scrolling. position:static cancels the sticky behavior. */
     .app-header {
       grid-area: header;
       padding: 22px 32px;
-      top: 28px;
+      position: static;
+      top: auto;
     }
     .app-header h1 { font-size: 1.75rem; }
     .header-date { font-size: 0.82rem; }
