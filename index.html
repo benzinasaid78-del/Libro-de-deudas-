@@ -694,10 +694,12 @@
 
   /* ── DESKTOP DASHBOARD (real desktop layout, uses full screen) ── */
   @media (min-width: 1000px) {
-    body { padding: 24px; }
+    html, body { background: var(--paper); }
+    body { padding: 0; }
     .app-shell {
-      max-width: min(1760px, 97vw);
-      min-height: calc(100vh - 48px);
+      max-width: 100%;
+      width: 100%;
+      min-height: 100vh;
       display: grid;
       grid-template-columns: 240px 1fr;
       grid-template-rows: auto auto 1fr;
@@ -705,7 +707,9 @@
         "header header"
         "nav    stats"
         "nav    content";
-      box-shadow: 0 30px 70px rgba(26,26,46,0.30), 0 10px 24px rgba(26,26,46,0.14);
+      border-radius: 0;
+      box-shadow: none;
+      border: none;
     }
 
     /* header spans full width and stays put (NOT sticky) because the sidebar
@@ -717,6 +721,7 @@
       padding: 22px 32px;
       position: static;
       top: auto;
+      border-radius: 0;
     }
     .app-header h1 { font-size: 1.75rem; }
     .header-date { font-size: 0.82rem; }
@@ -798,13 +803,12 @@
 
   /* ── ULTRA-WIDE / LARGE MONITORS: scale the shell and grids further ── */
   @media (min-width: 1500px) {
-    body { padding: 20px; }
     .app-shell { grid-template-columns: 260px 1fr; }
     .stats-bar { grid-template-columns: repeat(2, minmax(180px, 260px)); }
     .tx-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
   }
   @media (min-width: 1900px) {
-    .app-shell { max-width: min(2100px, 97vw); grid-template-columns: 280px 1fr; }
+    .app-shell { grid-template-columns: 280px 1fr; }
     .tx-list { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
   }
 
