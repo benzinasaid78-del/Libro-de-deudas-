@@ -1389,8 +1389,8 @@
       <div class="tx-card debt" style="display:flex;align-items:center;gap:12px">
         <div style="font-size:1.4rem;min-width:34px;text-align:center">${rank}</div>
         <div style="flex:1;min-width:0">
-          <div class="tx-name" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
-          <div style="font-size:0.72rem;color:var(--muted)">${g.phone || 'Sin teléfono'} · ${g.pendingCount} operación${g.pendingCount > 1 ? 'es' : ''} pendiente${g.pendingCount > 1 ? 's' : ''} · Desde ${formatDate(g.earliestPendingDate)}</div>
+          <div class="tx-name" style="cursor:pointer" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
+          <div style="font-size:0.72rem;color:var(--muted)">${g.pendingCount} operación${g.pendingCount > 1 ? 'es' : ''} pendiente${g.pendingCount > 1 ? 's' : ''} · Desde ${formatDate(g.earliestPendingDate)}</div>
         </div>
         <div style="text-align:right">
           <div class="val amount-owed" style="font-size:1.05rem;font-weight:900">${fmt(g.totalRemaining)} €</div>
@@ -1597,8 +1597,7 @@
       <div class="tx-card ${typeClass} ${g.hasOverdue ? 'overdue' : ''}">
         <div class="tx-top">
           <div>
-            <div class="tx-name" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
-            ${g.phone ? `<div style="font-size:0.72rem;color:var(--muted)">${g.phone}</div>` : ''}
+            <div class="tx-name" style="cursor:pointer" data-name="${escAttr(g.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${g.name}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
             <span class="tx-type-badge ${badgeClass}">${badgeText}</span>
@@ -2002,7 +2001,7 @@
     container.innerHTML = all.map(tx => `
       <div class="history-item" style="margin-bottom:8px">
         <div class="hi-left">
-          <div class="hi-title" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" data-name="${escAttr(tx.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${tx.name}</div>
+          <div class="hi-title" style="cursor:pointer" data-name="${escAttr(tx.name)}" onclick="openClientModal(this.dataset.name)" title="Ver cuenta completa de este cliente">${tx.name}</div>
           <div class="hi-sub">
             ${tx.type === 'digital' ? '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="4" y="4" width="16" height="10" rx="1"/><path d="M2 19h20l-1.5-3h-17Z"/></svg> Digital' : tx.type === 'service' ? '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18l3 3 6.1-6.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2Z"/></svg> Servicio' : '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="13" y2="18"/></svg> Deuda'} · 
             Pagado: ${fmt(tx.paid)} € ·
