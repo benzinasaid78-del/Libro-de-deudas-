@@ -287,21 +287,68 @@
   .btn-purple { background: var(--purple); color: white; }
   .btn-teal { background: var(--teal); color: white; }
 
-  /* ── PRINTABLE CLIENT ACCOUNT ── */
+  /* ── PRINTABLE CLIENT ACCOUNT (styled like the app, not a plain table) ── */
   #printArea { display: none; }
   @media print {
+    /* margin:0 on the page also makes Chrome drop its own header/footer
+       (site title, URL, page number, date) since it has no space to draw
+       them in; we add our own padding on #printArea instead. */
+    @page { margin: 0; }
     body > *:not(#printArea) { display: none !important; }
     #printArea {
       display: block !important;
-      padding: 24px;
-      color: #111;
-      background: #fff;
+      padding: 26px 30px 40px;
+      color: #2b2620;
+      background: #faf6ee;
       font-family: 'Inter', Arial, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    #printArea h1 { font-family: 'Lora', serif; margin-bottom: 2px; font-size: 22px; }
-    #printArea table { width: 100%; border-collapse: collapse; margin-top: 14px; }
-    #printArea th, #printArea td { border: 1px solid #999; padding: 6px 8px; font-size: 12px; text-align: left; }
-    #printArea th { background: #eee; }
+    #printArea .r-header {
+      border-bottom: 2px solid #1a1a2e;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    #printArea .r-header h1 { font-family: 'Lora', Georgia, serif; font-size: 24px; margin: 0; color: #1a1a2e; }
+    #printArea .r-header .r-sub { font-size: 12px; color: #6b6558; margin-top: 3px; }
+    #printArea .r-total-badge { text-align: right; }
+    #printArea .r-total-badge .lbl { font-size: 11px; color: #6b6558; }
+    #printArea .r-total-badge .amt { font-size: 20px; font-weight: 800; color: #c0392b; }
+    #printArea .r-client-name { font-family: 'Lora', Georgia, serif; font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+    #printArea .r-client-phone { font-size: 12px; color: #6b6558; margin-bottom: 18px; }
+    #printArea .r-op-card {
+      background: #fff;
+      border: 1px solid #d8d0bd;
+      border-left: 4px solid #c0392b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      break-inside: avoid;
+    }
+    #printArea .r-op-card.paid { border-left-color: #27ae60; }
+    #printArea .r-op-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    #printArea .r-op-date { font-size: 12px; color: #6b6558; }
+    #printArea .r-op-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
+    #printArea .r-op-badge.pending { background: #fbe4e1; color: #c0392b; }
+    #printArea .r-op-badge.paid { background: #e3f6ea; color: #27ae60; }
+    #printArea .r-op-type { font-size: 12px; color: #6b6558; margin-bottom: 8px; }
+    #printArea .r-op-amounts { display: flex; gap: 22px; font-size: 12px; }
+    #printArea .r-op-amounts strong { display: block; font-size: 13px; margin-top: 1px; }
+    #printArea .r-op-note { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #d8d0bd; font-size: 12px; color: #4a4436; font-style: italic; }
+    #printArea .r-totals {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 2px solid #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+    }
+    #printArea .r-totals .grand { font-size: 16px; font-weight: 800; margin-top: 4px; }
+    #printArea .r-totals .grand strong { color: #c0392b; }
   }
 
   .tx-note {
@@ -1569,30 +1616,42 @@
     const totalPaid      = ops.reduce((s, t) => s + (t.paid      || 0), 0);
     const totalRemaining = ops.reduce((s, t) => s + (t.remaining || 0), 0);
 
-    const rows = ops.map(t => `
-      <tr>
-        <td>${formatDate(t.date)}</td>
-        <td>${opTypeLabel(t.type)}</td>
-        <td>${fmt(t.amount)} €</td>
-        <td>${fmt(t.paid)} €</td>
-        <td>${fmt(t.remaining)} €</td>
-        <td>${t.remaining > 0 ? 'Pendiente' : 'Pagado'}</td>
-        <td>${t.note ? t.note.replace(/</g, '&lt;') : ''}</td>
-      </tr>`).join('');
+    const opCards = ops.map(t => {
+      const isPending = t.remaining > 0;
+      return `
+      <div class="r-op-card ${isPending ? '' : 'paid'}">
+        <div class="r-op-top">
+          <span class="r-op-date">${formatDate(t.date)}</span>
+          <span class="r-op-badge ${isPending ? 'pending' : 'paid'}">${isPending ? 'Pendiente' : 'Pagado'}</span>
+        </div>
+        <div class="r-op-type">${opTypeLabel(t.type)}</div>
+        <div class="r-op-amounts">
+          <div>Importe<strong>${fmt(t.amount)} €</strong></div>
+          <div>Pagado<strong>${fmt(t.paid)} €</strong></div>
+          <div>Pendiente<strong>${fmt(t.remaining)} €</strong></div>
+        </div>
+        ${t.note ? `<div class="r-op-note">${t.note.replace(/</g, '&lt;')}</div>` : ''}
+      </div>`;
+    }).join('');
 
     $('printArea').innerHTML = `
-      <h1>Locutorio Rachida</h1>
-      <div style="font-size:13px;color:#444;margin-bottom:16px">Estado de cuenta — ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-      <div style="font-size:18px;font-weight:700;text-transform:uppercase">${name}</div>
-      ${phone ? `<div style="font-size:13px;color:#444;margin-bottom:6px">Tel: ${phone}</div>` : ''}
-      <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Importe</th><th>Pagado</th><th>Pendiente</th><th>Estado</th><th>Nota</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div style="margin-top:18px;font-size:14px;line-height:1.7">
+      <div class="r-header">
+        <div>
+          <h1>Locutorio Rachida</h1>
+          <div class="r-sub">Estado de cuenta — ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <div class="r-total-badge">
+          <div class="lbl">Total pendiente</div>
+          <div class="amt">${fmt(totalRemaining)} €</div>
+        </div>
+      </div>
+      <div class="r-client-name">${name}</div>
+      ${phone ? `<div class="r-client-phone">Tel: ${phone}</div>` : ''}
+      ${opCards}
+      <div class="r-totals">
         <div>Total comprado: <strong>${fmt(totalAmount)} €</strong></div>
         <div>Total pagado: <strong>${fmt(totalPaid)} €</strong></div>
-        <div style="font-size:16px;margin-top:4px">Total pendiente: <strong>${fmt(totalRemaining)} €</strong></div>
+        <div class="grand">Total pendiente: <strong>${fmt(totalRemaining)} €</strong></div>
       </div>
     `;
     window.print();
