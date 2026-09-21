@@ -293,11 +293,21 @@
     /* margin:0 on the page also makes Chrome drop its own header/footer
        (site title, URL, page number, date) since it has no space to draw
        them in; we add our own padding on #printArea instead. */
-    @page { margin: 0; }
+    @page { size: A4; margin: 0; }
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #faf6ee !important;
+    }
     body > *:not(#printArea) { display: none !important; }
     #printArea {
       display: block !important;
-      padding: 26px 30px 40px;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+      padding: 15mm 14mm 18mm;
       color: #2b2620;
       background: #faf6ee;
       font-family: 'Inter', Arial, sans-serif;
@@ -1607,6 +1617,22 @@
   function opTypeLabel(t) {
     return t === 'digital' ? 'Servicio digital' : t === 'service' ? 'Servicio' : 'Mercancía / Préstamo';
   }
+
+  // Fix: on mobile browsers the print engine renders the page using the
+  // narrow mobile viewport, then shrinks that whole snapshot to fit in the
+  // middle of the physical A4/Letter page, leaving huge margins on every
+  // side. Temporarily widening the viewport just for the print pass makes
+  // the printed content fill the real page instead.
+  (function () {
+    const vpMeta = document.querySelector('meta[name="viewport"]');
+    const originalViewport = vpMeta ? vpMeta.getAttribute('content') : null;
+    window.addEventListener('beforeprint', () => {
+      if (vpMeta) vpMeta.setAttribute('content', 'width=1000, initial-scale=1');
+    });
+    window.addEventListener('afterprint', () => {
+      if (vpMeta && originalViewport) vpMeta.setAttribute('content', originalViewport);
+    });
+  })();
 
   function printClientAccount(name) {
     const ops = getClientOps(name).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
