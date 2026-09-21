@@ -813,6 +813,7 @@
     transition: border-color 0.18s;
   }
   .custom-select-trigger:hover { border-color: var(--muted); }
+  .custom-select-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .custom-select.open .custom-select-trigger { border-color: var(--accent); }
   .cs-chevron { color: var(--muted); flex-shrink: 0; transition: transform 0.18s; }
   .custom-select.open .cs-chevron { transform: rotate(180deg); color: var(--accent); }
@@ -977,19 +978,19 @@
         <label>Tipo de operación *</label>
         <div class="custom-select" id="addTypeWrap">
           <button type="button" class="custom-select-trigger" onclick="toggleTypeMenu('addTypeWrap', event)">
-            <span id="addTypeLabel">Mercancía / Préstamo</span>
+            <span id="addTypeLabel">Mercancía</span>
             <svg class="cs-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="custom-select-menu" id="addTypeMenu">
-            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','debt','Mercancía / Préstamo',toggleTypeFields)">
+            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','debt','Mercancía',toggleTypeFields)">
               <span>Mercancía / Préstamo</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
-            <div class="cs-option" data-value="service" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','service','Servicio (envío de dinero...)',toggleTypeFields)">
+            <div class="cs-option" data-value="service" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','service','Servicio',toggleTypeFields)">
               <span>Servicio (envío de dinero...)</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
-            <div class="cs-option" data-value="digital" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','digital','Servicio digital (CV, escáner...)',toggleTypeFields)">
+            <div class="cs-option" data-value="digital" onclick="selectTypeOption('addType','addTypeWrap','addTypeLabel','addTypeMenu','digital','Serv. digital',toggleTypeFields)">
               <span>Servicio digital (CV, escáner...)</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
@@ -1081,19 +1082,19 @@
         <label>Tipo de operación *</label>
         <div class="custom-select" id="editTypeWrap">
           <button type="button" class="custom-select-trigger" onclick="toggleTypeMenu('editTypeWrap', event)">
-            <span id="editTypeLabel">Mercancía / Préstamo</span>
+            <span id="editTypeLabel">Mercancía</span>
             <svg class="cs-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="custom-select-menu" id="editTypeMenu">
-            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','debt','Mercancía / Préstamo')">
+            <div class="cs-option active" data-value="debt" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','debt','Mercancía')">
               <span>Mercancía / Préstamo</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
-            <div class="cs-option" data-value="service" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','service','Servicio (envío de dinero...)')">
+            <div class="cs-option" data-value="service" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','service','Servicio')">
               <span>Servicio (envío de dinero...)</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
-            <div class="cs-option" data-value="digital" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','digital','Servicio digital (CV, escáner...)')">
+            <div class="cs-option" data-value="digital" onclick="selectTypeOption('editType','editTypeWrap','editTypeLabel','editTypeMenu','digital','Serv. digital')">
               <span>Servicio digital (CV, escáner...)</span>
               <span class="cs-check"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             </div>
@@ -1479,9 +1480,9 @@
 
   // ── CUSTOM SELECT: OPERATION TYPE (add / edit) ──────────────────
   const TYPE_OPTION_LABELS = {
-    debt: 'Mercancía / Préstamo',
-    service: 'Servicio (envío de dinero...)',
-    digital: 'Servicio digital (CV, escáner...)'
+    debt: 'Mercancía',
+    service: 'Servicio',
+    digital: 'Serv. digital'
   };
   function toggleTypeMenu(wrapId, e) {
     if (e) e.stopPropagation();
