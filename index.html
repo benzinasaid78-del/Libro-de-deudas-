@@ -2463,10 +2463,14 @@
   // Contraseña de acceso: cámbiala aquí cuando quieras.
   const APP_PIN = 'sara112233';
 
+  const LOCK_SESSION_MS = 24 * 60 * 60 * 1000; // 24 horas
+
   function checkLockOnLoad() {
-    if (sessionStorage.getItem('rachida_unlocked') === '1') {
+    const unlockedAt = parseInt(localStorage.getItem('rachida_unlocked_at'), 10);
+    if (unlockedAt && (Date.now() - unlockedAt) < LOCK_SESSION_MS) {
       unlockApp();
     } else {
+      localStorage.removeItem('rachida_unlocked_at');
       $('lockScreen').style.display = 'flex';
       setTimeout(() => $('lockPinInput').focus(), 100);
     }
@@ -2474,7 +2478,7 @@
   function tryUnlock() {
     const val = $('lockPinInput').value;
     if (val && val === APP_PIN) {
-      sessionStorage.setItem('rachida_unlocked', '1');
+      localStorage.setItem('rachida_unlocked_at', Date.now().toString());
       unlockApp();
     } else {
       $('lockError').style.display = 'block';
