@@ -56,6 +56,20 @@
     letter-spacing: 0.2px;
   }
   .app-header h1 span { color: var(--gold); }
+  .backup-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Lora', serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 2px;
+    transition: color 0.15s;
+  }
+  .backup-link:hover { color: var(--accent); }
   @keyframes glowPulse {
     0%, 100% {
       text-shadow: 0 0 4px rgba(212,160,23,0.5), 0 0 8px rgba(212,160,23,0.25);
@@ -872,11 +886,102 @@
   .cs-option.active { color: var(--accent); font-weight: 700; background: #fdf1ef; }
   .cs-check { display: none; color: var(--accent); }
   .cs-option.active .cs-check { display: flex; }
+
+  /* ── LOCK SCREEN ── */
+  .lock-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--ink);
+    background-image:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .lock-card {
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 40px 28px 32px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.45);
+  }
+  .lock-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: #fde8e8;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lock-card h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .lock-card h2 span { color: var(--gold); }
+  .lock-sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 22px;
+  }
+  .lock-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    font-family: 'Lora', serif;
+    background: white;
+    color: var(--ink);
+    box-sizing: border-box;
+  }
+  .lock-input:focus { outline: none; border-color: var(--accent); }
+  .lock-error {
+    color: var(--accent);
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .lock-btn { width: 100%; }
+  @keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  .lock-card.shake { animation: shakeX 0.4s ease; }
 </style>
 </head>
 <body>
 <div id="printArea"></div>
-<div class="app-shell">
+
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card" id="lockCard">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>L/Rachida <span>Deudas</span></h2>
+    <div class="lock-sub">Introduce la contraseña para continuar</div>
+    <input type="password" id="lockPinInput" class="lock-input" placeholder="••••••••••" autocomplete="off" onkeydown="if(event.key==='Enter') tryUnlock()">
+    <div class="lock-error" id="lockError">❌ Contraseña incorrecta</div>
+    <button type="button" class="btn btn-primary lock-btn" onclick="tryUnlock()">🔓 Entrar</button>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell" style="display:none">
 
 <!-- HEADER -->
 <div class="app-header">
@@ -920,6 +1025,12 @@
 
 <!-- TAB: DEBTS LIST -->
 <div class="tab-panel active" id="tab-debts">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button type="button" class="backup-link" onclick="exportBackup()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Copia de seguridad
+    </button>
+  </div>
   <div class="search-box">
     <span class="search-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
     <input type="text" placeholder="Buscar por nombre..." id="searchInput" oninput="renderDebts()">
@@ -1304,6 +1415,7 @@
 <!-- ── FIREBASE SDK (compat, works with plain <script> tags) ── -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
   // ── FIREBASE CONFIG ───────────────────────────────────────────
@@ -1706,6 +1818,72 @@
   // ── PRINT CLIENT ACCOUNT ("Ver cuenta" as a paper receipt) ─────
   function opTypeLabel(t) {
     return t === 'digital' ? 'Servicio digital' : t === 'service' ? 'Servicio' : 'Mercancía / Préstamo';
+  }
+
+  // ── BACKUP EXPORT (Excel) ────────────────────────────────────
+  function exportBackup() {
+    if (!transactions.length) {
+      showToast('No hay datos para exportar');
+      return;
+    }
+    try {
+      // Sheet 1: every single operation, most recent first
+      const opsRows = [...transactions]
+        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+        .map(t => ({
+          'Cliente': t.name || '',
+          'Teléfono': t.phone || '',
+          'Tipo de operación': opTypeLabel(t.type),
+          'Importe total (€)': parseFloat(fmt(t.amount)),
+          'Pagado (€)': parseFloat(fmt(t.paid)),
+          'Pendiente (€)': parseFloat(fmt(t.remaining)),
+          'Estado': t.remaining > 0 ? 'Pendiente' : 'Pagado',
+          'Fecha de operación': t.date || '',
+          'Fecha de vencimiento': t.dueDate || '',
+          'Nota': t.note || ''
+        }));
+
+      // Sheet 2: one row per client, with running totals
+      const byClient = {};
+      transactions.forEach(t => {
+        const key = (t.name || '').trim().toLowerCase();
+        if (!byClient[key]) byClient[key] = { name: t.name, phone: t.phone, amount: 0, paid: 0, remaining: 0, count: 0 };
+        byClient[key].amount    += (t.amount || 0);
+        byClient[key].paid      += (t.paid || 0);
+        byClient[key].remaining += (t.remaining || 0);
+        byClient[key].count++;
+        if (t.phone && !byClient[key].phone) byClient[key].phone = t.phone;
+      });
+      const clientRows = Object.values(byClient)
+        .sort((a, b) => b.remaining - a.remaining)
+        .map(c => ({
+          'Cliente': c.name || '',
+          'Teléfono': c.phone || '',
+          'Nº operaciones': c.count,
+          'Total comprado (€)': parseFloat(fmt(c.amount)),
+          'Total pagado (€)': parseFloat(fmt(c.paid)),
+          'Total pendiente (€)': parseFloat(fmt(c.remaining)),
+          'Estado': c.remaining > 0 ? 'Pendiente' : 'Pagado'
+        }));
+
+      const wb = XLSX.utils.book_new();
+
+      const wsClients = XLSX.utils.json_to_sheet(clientRows);
+      wsClients['!cols'] = [{ wch: 24 }, { wch: 15 }, { wch: 13 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 11 }];
+      XLSX.utils.book_append_sheet(wb, wsClients, 'Resumen por cliente');
+
+      const wsOps = XLSX.utils.json_to_sheet(opsRows);
+      wsOps['!cols'] = [{ wch: 24 }, { wch: 15 }, { wch: 20 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 15 }, { wch: 17 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, wsOps, 'Todas las operaciones');
+
+      const stamp = today();
+      const totalPendiente = fmt(transactions.reduce((s, t) => s + (t.remaining || 0), 0));
+      XLSX.writeFile(wb, `Backup_LocutorioRachida_${stamp}_${totalPendiente}€.xlsx`);
+      showToast('✅ Copia de seguridad exportada');
+    } catch (e) {
+      console.error(e);
+      showToast('❌ Error al exportar la copia de seguridad');
+    }
   }
 
   // Fix: on mobile browsers the print engine renders the page using the
@@ -2281,7 +2459,38 @@
     loadData();
   }
 
-  init();
+  // ── LOCK SCREEN ──────────────────────────────────────────────
+  // Contraseña de acceso: cámbiala aquí cuando quieras.
+  const APP_PIN = 'sara112233';
+
+  function checkLockOnLoad() {
+    if (sessionStorage.getItem('rachida_unlocked') === '1') {
+      unlockApp();
+    } else {
+      $('lockScreen').style.display = 'flex';
+      setTimeout(() => $('lockPinInput').focus(), 100);
+    }
+  }
+  function tryUnlock() {
+    const val = $('lockPinInput').value;
+    if (val && val === APP_PIN) {
+      sessionStorage.setItem('rachida_unlocked', '1');
+      unlockApp();
+    } else {
+      $('lockError').style.display = 'block';
+      $('lockPinInput').value = '';
+      $('lockPinInput').focus();
+      $('lockCard').classList.add('shake');
+      setTimeout(() => $('lockCard').classList.remove('shake'), 400);
+    }
+  }
+  function unlockApp() {
+    $('lockScreen').style.display = 'none';
+    $('appShell').style.display = '';
+    init();
+  }
+
+  checkLockOnLoad();
 </script>
 </body>
 </html>
