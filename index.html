@@ -2531,8 +2531,12 @@
 
   // ── STATS ─────────────────────────────────────────────────────
   function updateStats() {
-    const debtCount = transactions.filter(t => t.remaining > 0).length;
-    const paidCount = transactions.filter(t => t.remaining <= 0).length;
+    // Contamos por CLIENTE (no por operación suelta): un cliente solo
+    // cuenta como "Pagado" cuando TODAS sus operaciones están saldadas;
+    // si le queda una sola pendiente, sigue contando como "Pendiente".
+    const groups = buildClientGroups(transactions);
+    const debtCount = groups.filter(g => g.totalRemaining > 0).length;
+    const paidCount = groups.filter(g => g.totalRemaining <= 0).length;
     const totalOwed = transactions.reduce((s,t) => s + (t.remaining || 0), 0);
 
     $('statDebt').textContent = debtCount;
