@@ -2047,14 +2047,12 @@
       const moreId = 'moreActions-' + gIndex;
       const isPaid = g.totalRemaining <= 0;
 
-      let typeClass = isPaid ? 'paid' : (g.hasDebtUnpaid ? 'debt' : (g.hasDigital ? 'digital' : 'service'));
-      if (g.hasOverdue) typeClass = 'debt';
+      let typeClass = isPaid ? 'paid' : (g.hasOverdue ? 'debt' : 'service');
 
       let badgeClass, badgeText;
       if (isPaid) { badgeClass = 'badge-paid'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg> Pagado'; }
-      else if (g.hasDebtUnpaid) { badgeClass = 'badge-debt'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M6 2h12M6 22h12"/><path d="M6 2c0 5 5 6 6 8-1 2-6 3-6 8M18 2c0 5-5 6-6 8 1 2 6 3 6 8"/></svg> Pendiente'; }
-      else if (g.hasDigital) { badgeClass = 'badge-digital'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><rect x="4" y="4" width="16" height="10" rx="1"/><path d="M2 19h20l-1.5-3h-17Z"/></svg> Digital'; }
-      else { badgeClass = 'badge-service'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18l3 3 6.1-6.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2Z"/></svg> Servicio'; }
+      else if (g.hasOverdue) { badgeClass = 'badge-debt'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Atrasado'; }
+      else { badgeClass = 'badge-service'; badgeText = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0"><path d="M6 2h12M6 22h12"/><path d="M6 2c0 5 5 6 6 8-1 2-6 3-6 8M18 2c0 5-5 6-6 8 1 2 6 3 6 8"/></svg> Pendiente'; }
 
       const fakeTx = { remaining: g.totalRemaining, phone: g.phone, date: g.earliestPendingDate, name: g.name };
       const showWhatsApp = needsWhatsAppReminder(fakeTx);
